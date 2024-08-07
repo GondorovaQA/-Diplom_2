@@ -7,16 +7,19 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import io.qameta.allure.Step;
 
-public class UserLogitTest {
-    @BeforeClass
-    public static void setup() {
+public class UserLoginTest {
+    private static User validUser;
+    private static User invalidUser;
 
-        RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
+    @BeforeClass
+    public static void createUser() {
+        validUser = new User("unique-test-user@example.com", "password123");
+        invalidUser = new User("invalid-login@test.com", "invalid-password");
     }
+
     @Test
     @Step
     public void testLoginWithValidCredentials() {
-        User validUser = new User("unique-test-user@example.com", "password123");
         LoginRequest loginRequest = new LoginRequest(validUser);
 
         given()
@@ -34,17 +37,15 @@ public class UserLogitTest {
     @Test
     @Step
     public void testLoginWithInvalidCredentials() {
-        String email = "invalid-login@test.com";
-        String password = "invalid-password";
+        LoginRequest loginRequest = new LoginRequest(invalidUser);
 
         given()
                 .contentType("application/json")
-                .body("{ \"email\": \"" + email + "\", \"password\": \"" + password + "\" }")
+                .body(loginRequest)
                 .when()
                 .post("/api/auth/login")
                 .then()
                 .statusCode(401)
-                .body(("message"), equalTo("email or password are incorrect"));
+                .body("message", equalTo("email or password are incorrect"));
     }
-
 }

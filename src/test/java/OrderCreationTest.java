@@ -4,10 +4,7 @@ import io.restassured.response.Response;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-
 import java.util.List;
-
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 public class OrderCreationTest {
@@ -105,8 +102,36 @@ public class OrderCreationTest {
                 .when()
                 .delete("/api/orders");
     }
+    @Test
+    @Step
+    public void testGetAllOrders() {
+        String accessToken = getAccessToken(); // Получение токена доступа
 
+        given()
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType("application/json")
+                .when()
+                .get("/api/orders/all")
+                .then()
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("orders.size()", greaterThanOrEqualTo(0))
+                .body("total", greaterThanOrEqualTo(0));
     }
+    @Test
+    @Step
+    public void testGetUserOrders() {
+        String accessToken = getAccessToken();
+
+        given()
+                .header("Authorization", "Bearer " + accessToken)
+                .contentType("application/json")
+                .when()
+                .get("/api/orders");
+    }
+
+
+}
 
 
 

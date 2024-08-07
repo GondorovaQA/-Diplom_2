@@ -1,12 +1,16 @@
 import io.restassured.RestAssured;
+import io.restassured.response.ValidatableResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import io.qameta.allure.Step;
+import org.example.UserClient;
 
 public class UserCreationTest {
+
     @BeforeClass
     public static void setup() {
 
@@ -31,22 +35,22 @@ public class UserCreationTest {
                 .body("user.name", equalTo(null));
     }
 
-    @Test(expected = AssertionError.class)
+    @Test
     @Step
-    public void testCreateExistingUser() {
-
+    public void registerDuplicateUser() {
         String email = "existing-test-user@example.com";
         String password = "password123";
-        String name = "Registered Test User";
+        String name = "Existing Test User";
+        var registerData = "{ \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"name\": \"" + name + "\" }";
+        UserClient userClient = new UserClient();
+        ValidatableResponse responseRegister1 = userClient.registerUser(registerData);
+        ValidatableResponse responseRegister2 = userClient.registerUser(registerData);
+        String token = responseRegister1.extract().path("accessToken");
+        int statusCode = responseRegister2.extract().statusCode();
+        boolean isRegistered = responseRegister2.extract().path("success");
+        assertThat("Ошибка в коде или теле ответа", statusCode, is(403));
+        assertThat("Ошибка в коде или теле ответа", isRegistered, is(equalTo(false)));
 
-        given()
-                .contentType("application/json")
-                .body("{ \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"name\": \"" + name + "\" }")
-                .when()
-                .post("/api/auth/register")
-                .then()
-                .statusCode(403)
-                .body("message", equalTo("User with such email already exists"));
     }
 
     @Test

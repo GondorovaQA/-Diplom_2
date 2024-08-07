@@ -4,12 +4,11 @@ public class LoginRequest {
     private String email;
     private String password;
 
-    public LoginRequest(User user) {
-        this.email = user.getEmail();
-        this.password = user.getPassword();
+    public LoginRequest(String email, String password) {
+        this.email = email;
+        this.password = password;
     }
 
-    // Геттеры и сеттеры
     public String getEmail() {
         return email;
     }
@@ -25,4 +24,10 @@ public class LoginRequest {
     public void setPassword(String password) {
         this.password = password;
     }
+    // В классе LoginRequest добавьте следующий конструктор
+    public LoginRequest(User user) {
+        this.email = user.getEmail();
+        this.password = user.getPassword();
+    }
+
 }
