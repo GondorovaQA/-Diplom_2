@@ -1,4 +1,3 @@
-import io.restassured.RestAssured;
 import org.example.LoginRequest;
 import org.example.User;
 import org.junit.BeforeClass;

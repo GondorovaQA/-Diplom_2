@@ -24,7 +24,6 @@ public class LoginRequest {
     public void setPassword(String password) {
         this.password = password;
     }
-    // В классе LoginRequest добавьте следующий конструктор
     public LoginRequest(User user) {
         this.email = user.getEmail();
         this.password = user.getPassword();

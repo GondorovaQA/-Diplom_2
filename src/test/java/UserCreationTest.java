@@ -1,69 +1,68 @@
+import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import java.util.Random;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import io.qameta.allure.Step;
-import org.example.UserClient;
 
 public class UserCreationTest {
+    private String userEmail;
+    private String userPassword;
+    private String userName;
 
     @BeforeClass
     public static void setup() {
-
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
     }
-    @Test
-    @Step
-    public void testCreateUniqueUser() {
-        String email = "null";
-        String password = "password";
-        String name = "Username";
-
-        given()
+    private ValidatableResponse registerUser(String email, String password, String name) {
+        return given()
                 .contentType("application/json")
                 .body("{ \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"name\": \"" + name + "\" }")
                 .when()
                 .post("/api/auth/register")
-                .then()
-                .statusCode(403)
-                .body("success", is(false))
-                .body("user.email", equalTo(null))
-                .body("user.name", equalTo(null));
+                .then();
+    }
+    private void generateUserDataWithRandomEmail() {
+        Random random = new Random();
+        userEmail = "test" + random.nextInt(100000) + "@example.com";
+        userName = "Test User " + random.nextInt(100000);
+        userPassword = "Test password" + random.nextInt(100000);
+    }
+
+    @Test
+    @Step
+    public void testCreateUniqueUser() {
+        generateUserDataWithRandomEmail();
+        registerUser(userEmail, userPassword, userName)
+                .statusCode(200)
+                .body("success", is(true));
     }
 
     @Test
     @Step
     public void registerDuplicateUser() {
-        String email = "existing-test-user@example.com";
-        String password = "password123";
-        String name = "Existing Test User";
-        var registerData = "{ \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"name\": \"" + name + "\" }";
-        UserClient userClient = new UserClient();
-        ValidatableResponse responseRegister1 = userClient.registerUser(registerData);
-        ValidatableResponse responseRegister2 = userClient.registerUser(registerData);
-        String token = responseRegister1.extract().path("accessToken");
-        int statusCode = responseRegister2.extract().statusCode();
-        boolean isRegistered = responseRegister2.extract().path("success");
-        assertThat("Ошибка в коде или теле ответа", statusCode, is(403));
-        assertThat("Ошибка в коде или теле ответа", isRegistered, is(equalTo(false)));
-
+        generateUserDataWithRandomEmail();
+        String emailForSecondUser = userEmail.replaceFirst("\\d+", String.valueOf(new Random().nextInt(100000)));
+        registerUser(userEmail, userPassword, userName);
+        ValidatableResponse responseRegisterSecondUser = registerUser(emailForSecondUser, userPassword, userName);
+        int statusCode = responseRegisterSecondUser.extract().statusCode();
+        boolean isRegistered = responseRegisterSecondUser.extract().path("success");
+        assertThat("User already exists", statusCode, is(403));
+        assertThat("User already exists", isRegistered, is(equalTo(false)));
     }
 
     @Test
     @Step
     public void testMissingField() {
-
-        String email = "missing-field-test@example.com";
-        String password = "password123";
-        String name = "";
-
+        generateUserDataWithRandomEmail();
+        userName = "";
         given()
                 .contentType("application/json")
-                .body("{ \"email\": \"" + email + "\", \"password\": \"" + password + "\", \"name\": \"" + name + "\" }")
+                .body("{ \"email\": \"" + userEmail + "\", \"password\": \"" + userPassword + "\", \"name\": \"" + userName + "\" }")
                 .when()
                 .post("/api/auth/register")
                 .then()
@@ -71,16 +70,12 @@ public class UserCreationTest {
                 .body("success", is(false))
                 .body("message", equalTo("Email, password and name are required fields"));
     }
-    @AfterClass
-    public static void tearDown() {
-
+    @After
+    public void tearDown() {
         given()
                 .contentType("application/json")
-                .body("{ \"email\": \"existing-test-user@example.com\", \"password\": \"password123\", \"name\": \"Registered Test User\" }")
+                .body("{ \"email\": \"" + userEmail + "\", \"password\": \"" + userPassword + "\" }")
                 .when()
                 .delete("/api/auth/delete");
     }
-
 }
-
-

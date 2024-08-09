@@ -9,7 +9,6 @@ public class UserTest {
     private static String getAccessToken() {
         return "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ODAzMzU3OWVkMjgwMDAxYjQ1NmMzMyIsImlhdCI6MTcyMjk3OTE3NiwiZXhwIjoxNzIyOTgwMzc2fQ.cD6Z2SNVlsi2bQITX1-RFzW1GG2QIpSkJ4F6_knIWyM";
     }
-    private static final String BASE_URL = "https://stellarburgers.nomoreparties.site/api/auth/user";
     private static String accessToken;
 
 

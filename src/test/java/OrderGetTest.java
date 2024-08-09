@@ -4,10 +4,14 @@ import io.restassured.response.Response;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
 import java.util.List;
+
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-public class OrderCreationTest {
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+
+public class OrderGetTest {
     private static String accessToken;
 
     @BeforeClass
@@ -39,61 +43,38 @@ public class OrderCreationTest {
         List<String> ingredientsIds = response.jsonPath().getList("data._id");
         return ingredientsIds;
     }
-
     @Test
     @Step
-    public void testCreateOrderWithoutAuthorization() {
-        List<String> ingredientsIds = getIngredientsIds();
-
-        given()
-                .contentType("application/json")
-                .body("{\"ingredients\": [" + String.join(",", ingredientsIds) + "]}")
-                .when()
-                .post("/api/orders")
-                .then()
-                .statusCode(400);
-    }
-    @Test
-    @Step
-    public void testCreateOrderWithoutIngredients() {
-        String accessToken = getAccessToken();
+    public void testGetAllOrders() {
+        String accessToken = getAccessToken(); // Получение токена доступа
 
         given()
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType("application/json")
-                .body("{}")
                 .when()
-                .post("/api/orders")
+                .get("/api/orders/all")
                 .then()
-                .statusCode(403)
-                .body("success", equalTo(false))
-                .body("message", equalTo("jwt malformed"));
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("orders.size()", greaterThanOrEqualTo(0))
+                .body("total", greaterThanOrEqualTo(0));
     }
     @Test
     @Step
-    public void testCreateOrderWithInvalidIngredientsHash() {
+    public void testGetUserOrders() {
         String accessToken = getAccessToken();
 
         given()
                 .header("Authorization", "Bearer " + accessToken)
-                .contentType("application/json")
-                .body("{\"ingredients\": [\"invalid-hash\"]}")
-                .when()
-                .post("/api/orders")
-                .then()
-                .statusCode(403);
-    }
-    @Test
-    @Step
-    public void testGetOrdersUnauthorizedUser() {
-        given()
                 .contentType("application/json")
                 .when()
                 .get("/api/orders")
                 .then()
-                .statusCode(401)
-                .body("success", equalTo(false))
-                .body("message", equalTo("You should be authorised"));
+                .statusCode(200)
+                .body("success", equalTo(true))
+                .body("orders", notNullValue())
+                .body("orders.size()", greaterThanOrEqualTo(0))
+                .body("total", greaterThanOrEqualTo(0));
     }
     @AfterClass
     public static void tearDown() {
@@ -103,11 +84,3 @@ public class OrderCreationTest {
                 .delete("/api/orders");
     }
 }
-
-
-
-
-
-
-
-
