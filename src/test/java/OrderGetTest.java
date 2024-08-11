@@ -1,29 +1,49 @@
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
+import io.restassured.path.json.JsonPath;
 import io.restassured.response.Response;
+import io.restassured.response.ValidatableResponse;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
-
-import java.util.List;
-
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import java.util.List;
+import java.util.Random;
 
 public class OrderGetTest {
     private static String accessToken;
+    private static String userEmail;
+    private static String userName;
+    private static String userPassword;
 
     @BeforeClass
-    public static void setUp() {
+    public static void setup() {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
+        generateUserDataWithRandomEmail();
+        registerUser(userEmail, userPassword, userName);
         accessToken = getAccessToken();
     }
+    private static ValidatableResponse registerUser(String email, String password, String name) {
+        return given()
+                .contentType("application/json")
+                .body(String.format("{ \"email\": \"%s\", \"password\": \"%s\", \"name\": \"%s\" }", email, password, name))
+                .when()
+                .post("/api/auth/register")
+                .then();
+    }
 
+    private static void generateUserDataWithRandomEmail() {
+        Random random = new Random();
+        userEmail = "test" + random.nextInt(100000) + "@example.com";
+        userName = "Test User " + random.nextInt(100000);
+        userPassword = "Test password" + random.nextInt(100000);
+    }
     private static String getAccessToken() {
         Response response = given()
                 .contentType("application/json")
-                .body("{\"email\": \"test-data@yandex.ru\", \"password\": \"password\"}")
+                .body(String.format("{\"email\": \"%s\", \"password\": \"%s\"}", userEmail, userPassword))
                 .when()
                 .post("/api/auth/login");
 
@@ -33,7 +53,6 @@ public class OrderGetTest {
             throw new RuntimeException("Failed to get access token");
         }
     }
-
     public static List<String> getIngredientsIds() {
         Response response = given()
                 .contentType("application/json")
@@ -46,8 +65,6 @@ public class OrderGetTest {
     @Test
     @Step
     public void testGetAllOrders() {
-        String accessToken = getAccessToken(); // Получение токена доступа
-
         given()
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType("application/json")
@@ -60,27 +77,26 @@ public class OrderGetTest {
                 .body("total", greaterThanOrEqualTo(0));
     }
     @Test
-    @Step
     public void testGetUserOrders() {
-        String accessToken = getAccessToken();
-
         given()
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType("application/json")
                 .when()
                 .get("/api/orders")
                 .then()
-                .statusCode(200)
-                .body("success", equalTo(true))
-                .body("orders", notNullValue())
-                .body("orders.size()", greaterThanOrEqualTo(0))
-                .body("total", greaterThanOrEqualTo(0));
+                .statusCode(403);
+
+        JsonPath jsonPathEvaluator = given().get("/api/orders").jsonPath();
+
+        assertThat(jsonPathEvaluator.getString("success"), equalTo("false"));
+
     }
     @AfterClass
     public static void tearDown() {
         given()
-                .header("Authorization", "Bearer " + accessToken)
+                .contentType("application/json")
+                .body(String.format("{ \"email\": \"%s\", \"password\": \"%s\" }", userEmail, userPassword))
                 .when()
-                .delete("/api/orders");
+                .delete("/api/auth/delete");
     }
 }

@@ -1,25 +1,30 @@
 import org.example.LoginRequest;
-import org.example.User;
-import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import java.util.Arrays;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
-import io.qameta.allure.Step;
 
+@RunWith(Parameterized.class)
 public class UserLoginTest {
-    private static User validUser;
-    private static User invalidUser;
 
-    @BeforeClass
-    public static void createUser() {
-        validUser = new User("unique-test-user@example.com", "password123");
-        invalidUser = new User("invalid-login@test.com", "invalid-password");
+    private String email;
+    private String password;
+    private int expectedStatusCode;
+    private boolean success;
+    private String message;
+
+    public UserLoginTest(String email, String password, int expectedStatusCode, boolean success, String message) {
+        this.email = email;
+        this.password = password;
+        this.expectedStatusCode = expectedStatusCode;
+        this.success = success;
+        this.message = message;
     }
-
     @Test
-    @Step
-    public void testLoginWithValidCredentials() {
-        LoginRequest loginRequest = new LoginRequest(validUser);
+    public void testLogin() {
+        LoginRequest loginRequest = new LoginRequest(email, password);
 
         given()
                 .contentType("application/json")
@@ -27,24 +32,15 @@ public class UserLoginTest {
                 .when()
                 .post("/api/auth/login")
                 .then()
-                .statusCode(200)
-                .body("success", is(true))
-                .body("accessToken", notNullValue())
-                .body("refreshToken", notNullValue());
+                .statusCode(expectedStatusCode)
+                .body("success", equalTo(success))
+                .body("message", equalTo(message));
     }
-
-    @Test
-    @Step
-    public void testLoginWithInvalidCredentials() {
-        LoginRequest loginRequest = new LoginRequest(invalidUser);
-
-        given()
-                .contentType("application/json")
-                .body(loginRequest)
-                .when()
-                .post("/api/auth/login")
-                .then()
-                .statusCode(401)
-                .body("message", equalTo("email or password are incorrect"));
+    @Parameterized.Parameters(name = "{index}: Testing with email={0}, password={1}")
+    public static Iterable<Object[]> loginDataProvider() {
+        return Arrays.asList(new Object[][]{
+                {"unique-test-user@example.com", "password123", 200, true, null},
+                {"invalid-login@test.com", "invalid-password", 401, false, "email or password are incorrect"}
+        });
     }
 }

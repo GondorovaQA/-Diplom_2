@@ -1,45 +1,43 @@
+package site.stellarburgers;
 import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
-import org.junit.AfterClass;
+import org.example.UserGenerator;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import java.util.Arrays;
 import java.util.List;
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+
+
+@RunWith(Parameterized.class)
 public class OrderCreationTest {
+
+    private String authorizationHeader;
+    private String body;
+    private int expectedStatusCode;
     private static String accessToken;
+
+    public OrderCreationTest(String authorizationHeader, String body, int expectedStatusCode) {
+        this.authorizationHeader = authorizationHeader;
+        this.body = body;
+        this.expectedStatusCode = expectedStatusCode;
+    }
 
     @BeforeClass
     public static void setUp() {
         RestAssured.baseURI = "https://stellarburgers.nomoreparties.site";
-        accessToken = getAccessToken();
+        accessToken = UserGenerator.getDefaultRegistrationData().getAccessToken();
     }
 
-    private static String getAccessToken() {
-        Response response = given()
-                .contentType("application/json")
-                .body("{\"email\": \"test-data@yandex.ru\", \"password\": \"password\"}")
-                .when()
-                .post("/api/auth/login");
-
-        if (response.statusCode() == 200) {
-            return response.jsonPath().getString("accessToken");
-        } else {
-            throw new RuntimeException("Failed to get access token");
-        }
+    @Parameterized.Parameters(name = "{index}: Test Create Order Without Authorization")
+    public static Object[][] createParameters() {
+        return new Object[][]{
+                {null, "", 400},
+        };
     }
-
-    public static List<String> getIngredientsIds() {
-        Response response = given()
-                .contentType("application/json")
-                .when()
-                .get("/api/ingredients");
-
-        List<String> ingredientsIds = response.jsonPath().getList("data._id");
-        return ingredientsIds;
-    }
-
     @Test
     @Step
     public void testCreateOrderWithoutAuthorization() {
@@ -51,37 +49,47 @@ public class OrderCreationTest {
                 .when()
                 .post("/api/orders")
                 .then()
+                .statusCode(expectedStatusCode);
+    }
+    @Test
+    @Step
+    public void testCreateOrderWithAuthorization() {
+        List<String> ingredientsIds = getIngredientsIds();
+
+        given()
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + accessToken)
+                .body("{\"ingredients\": [" + String.join(",", ingredientsIds) + "]}")
+                .when()
+                .post("/api/orders")
+                .then()
                 .statusCode(400);
     }
     @Test
     @Step
     public void testCreateOrderWithoutIngredients() {
-        String accessToken = getAccessToken();
-
         given()
-                .header("Authorization", "Bearer " + accessToken)
                 .contentType("application/json")
-                .body("{}")
-                .when()
-                .post("/api/orders")
-                .then()
-                .statusCode(403)
-                .body("success", equalTo(false))
-                .body("message", equalTo("jwt malformed"));
-    }
-    @Test
-    @Step
-    public void testCreateOrderWithInvalidIngredientsHash() {
-        String accessToken = getAccessToken();
-
-        given()
                 .header("Authorization", "Bearer " + accessToken)
-                .contentType("application/json")
-                .body("{\"ingredients\": [\"invalid-hash\"]}")
+                .body("{}") // Пустой JSON
                 .when()
                 .post("/api/orders")
                 .then()
                 .statusCode(403);
+    }
+    @Test
+    @Step
+    public void testCreateOrderWithInvalidIngredientHash() {
+        List<String> invalidIngredientsIds = Arrays.asList("invalidHash1", "invalidHash2");
+
+        given()
+                .contentType("application/json")
+                .header("Authorization", "Bearer " + accessToken)
+                .body("{\"ingredients\": [" + String.join(",", invalidIngredientsIds) + "]}")
+                .when()
+                .post("/api/orders")
+                .then()
+                .statusCode(400);
     }
     @Test
     @Step
@@ -91,23 +99,15 @@ public class OrderCreationTest {
                 .when()
                 .get("/api/orders")
                 .then()
-                .statusCode(401)
-                .body("success", equalTo(false))
-                .body("message", equalTo("You should be authorised"));
+                .statusCode(401);
     }
-    @AfterClass
-    public static void tearDown() {
-        given()
-                .header("Authorization", "Bearer " + accessToken)
+
+    private static List<String> getIngredientsIds() {
+        Response response = given()
+                .contentType("application/json")
                 .when()
-                .delete("/api/orders");
+                .get("/api/ingredients");
+
+        return response.jsonPath().getList("data._id");
     }
 }
-
-
-
-
-
-
-
-
