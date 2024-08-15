@@ -1,10 +1,9 @@
 package org.example;
-
-public class User {
+public class UserApi {
     private String email;
     private String password;
 
-    public User(String email, String password) {
+    public UserApi(String email, String password) {
         this.email = email;
         this.password = password;
     }

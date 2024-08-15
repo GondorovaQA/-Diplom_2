@@ -51,9 +51,10 @@ public class UserCreationTest {
         ValidatableResponse responseRegisterSecondUser = registerUser(emailForSecondUser, userPassword, userName);
         int statusCode = responseRegisterSecondUser.extract().statusCode();
         boolean isRegistered = responseRegisterSecondUser.extract().path("success");
-        assertThat("User already exists", statusCode, is(200));
-        assertThat("User already exists", isRegistered, is(equalTo(true)));
+        assertThat("User already exists", statusCode, is(403));
+        assertThat("User already exists", isRegistered, is(equalTo(false)));
     }
+
     @Test
     @Step
     public void testMissingField() {

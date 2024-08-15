@@ -53,15 +53,7 @@ public class OrderGetTest {
             throw new RuntimeException("Failed to get access token");
         }
     }
-    public static List<String> getIngredientsIds() {
-        Response response = given()
-                .contentType("application/json")
-                .when()
-                .get("/api/ingredients");
 
-        List<String> ingredientsIds = response.jsonPath().getList("data._id");
-        return ingredientsIds;
-    }
     @Test
     @Step
     public void testGetAllOrders() {

@@ -25,5 +25,6 @@ public class UserGenerator {
         public String getAccessToken() {
             return "fake_access_token";
         }
+
     }
 }

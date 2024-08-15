@@ -24,7 +24,7 @@ public class LoginRequest {
     public void setPassword(String password) {
         this.password = password;
     }
-    public LoginRequest(User user) {
+    public LoginRequest(UserApi user) {
         this.email = user.getEmail();
         this.password = user.getPassword();
     }

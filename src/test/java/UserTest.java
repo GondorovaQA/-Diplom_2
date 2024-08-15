@@ -1,48 +1,70 @@
-import io.qameta.allure.Step;
+import io.restassured.response.ValidatableResponse;
+import org.example.UserApi;
+import org.example.UserApiClient;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
-
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import java.util.Arrays;
+import java.util.Collection;
+import static org.apache.http.HttpStatus.SC_OK;
+import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
+import static org.junit.Assert.assertEquals;
+@RunWith(Parameterized.class)
 public class UserTest {
 
-    private String accessToken;
+    private UserApi registerData;
+    private UserApi updateData;
+    private String token = "";
+    private int statusCode;
+    private boolean isUpdated;
 
-    public UserTest() {
-        this.accessToken = "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY2ODAzMzU3OWVkMjgwMDAxYjQ1NmMzMyIsImlhdCI6MTcyMjk3OTE3NiwiZXhwIjoxNzIyOTgwMzc2fQ.cD6Z2SNVlsi2bQITX1-RFzW1GG2QIpSkJ4F6_knIWyM";
+    @Parameterized.Parameters(name = "Изменение данных пользователя с авторизацией: {index} - isAuth={0}, expectedStatus={1}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+                {true, SC_OK},
+                {false, SC_UNAUTHORIZED},
+        });
     }
+
+    @Parameterized.Parameter(0)
+    public boolean isAuth;
+
+    @Parameterized.Parameter(1)
+    public int status;
+
+
     @Before
     public void setUp() {
+        registerData = new UserApi("username", "password");
+        updateData = new UserApi("anotherUsername", "anotherPassword");
+
+        ValidatableResponse responseRegister = UserApiClient.registerUser(registerData);
+        token = responseRegister.extract().path("accessToken");
+    }
+    @After
+    public void tearDown() {
+        if (token != null && !token.isEmpty()) {
+            ValidatableResponse responseDelete = UserApiClient.deleteUser(token);
+        } else {
+            System.out.println("Token is null or empty, skipping deletion.");
+        }
     }
     @Test
-    @Step("Изменение данных пользователя с авторизацией")
-    public void testUpdateUserInfoWithAuthorization() {
-        String newName = "UpdatedName";
+    public void updateUserWithAuthorization() {
+        String token2 = isAuth ? token : getValidDefaultToken();
 
-        given()
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType("application/json")
-                .body("{\"name\": \"" + newName + "\"}")
-                .when()
-                .patch()
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("nullErrorNot Found"));
+        ValidatableResponse responseUpdate = UserApiClient.updateUser(updateData, token2);
+
+        statusCode = responseUpdate.extract().statusCode();
+        isUpdated = responseUpdate.extract().path("success");
+
+        assertEquals("Ошибка", status, statusCode);
+        assertEquals("Ошибка", isAuth, isUpdated);
     }
 
-    @Test
-    @Step("Изменение данных пользователя без авторизации")
-    public void testUpdateUserInfoWithoutAuthorization() {
-        String newName = "AnotherName";
-
-        given()
-                .contentType("application/json")
-                .body("{\"name\": \"" + newName + "\"}")
-                .when()
-                .patch()
-                .then()
-                .statusCode(404)
-                .body("message", equalTo("nullErrorNot Found"));
+    private String getValidDefaultToken() {
+        return "validDefaultToken";
     }
-
 }
