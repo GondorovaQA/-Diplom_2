@@ -1,4 +1,3 @@
-import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.example.UserGenerator;
@@ -38,7 +37,6 @@ public class OrderCreationTest {
         };
     }
     @Test
-    @Step
     public void testCreateOrderWithoutAuthorization() {
         List<String> ingredientsIds = getIngredientsIds();
 
@@ -51,7 +49,6 @@ public class OrderCreationTest {
                 .statusCode(expectedStatusCode);
     }
     @Test
-    @Step
     public void testCreateOrderWithAuthorization() {
         List<String> ingredientsIds = getIngredientsIds();
 
@@ -65,7 +62,6 @@ public class OrderCreationTest {
                 .statusCode(400);
     }
     @Test
-    @Step
     public void testCreateOrderWithoutIngredients() {
         given()
                 .contentType("application/json")
@@ -77,7 +73,6 @@ public class OrderCreationTest {
                 .statusCode(403);
     }
     @Test
-    @Step
     public void testCreateOrderWithInvalidIngredientHash() {
         List<String> invalidIngredientsIds = Arrays.asList("invalidHash1", "invalidHash2");
 
@@ -91,7 +86,6 @@ public class OrderCreationTest {
                 .statusCode(400);
     }
     @Test
-    @Step
     public void testGetOrdersUnauthorizedUser() {
         given()
                 .contentType("application/json")

@@ -1,4 +1,3 @@
-import io.qameta.allure.Step;
 import io.restassured.RestAssured;
 import io.restassured.response.ValidatableResponse;
 import org.junit.After;
@@ -34,7 +33,6 @@ public class UserCreationTest {
     }
 
     @Test
-    @Step
     public void testCreateUniqueUser() {
         generateUserDataWithRandomEmail();
         registerUser(userEmail, userPassword, userName)
@@ -43,20 +41,18 @@ public class UserCreationTest {
     }
 
     @Test
-    @Step
     public void registerDuplicateUser() {
         generateUserDataWithRandomEmail();
-        String emailForSecondUser = userEmail.replaceFirst("\\d+", String.valueOf(new Random().nextInt(100000)));
         registerUser(userEmail, userPassword, userName);
-        ValidatableResponse responseRegisterSecondUser = registerUser(emailForSecondUser, userPassword, userName);
+        ValidatableResponse responseRegisterSecondUser = registerUser(userEmail, userPassword, userName);
         int statusCode = responseRegisterSecondUser.extract().statusCode();
-        boolean isRegistered = responseRegisterSecondUser.extract().path("success");
         assertThat("User already exists", statusCode, is(403));
+        boolean isRegistered = responseRegisterSecondUser.extract().path("success");
         assertThat("User already exists", isRegistered, is(equalTo(false)));
     }
 
+
     @Test
-    @Step
     public void testMissingField() {
         generateUserDataWithRandomEmail();
         userName = "";

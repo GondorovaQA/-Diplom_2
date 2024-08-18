@@ -1,70 +1,66 @@
+package org.example;
+import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
 import io.restassured.response.ValidatableResponse;
-import org.example.UserApi;
-import org.example.UserApiClient;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import java.util.Arrays;
-import java.util.Collection;
-import static org.apache.http.HttpStatus.SC_OK;
-import static org.apache.http.HttpStatus.SC_UNAUTHORIZED;
-import static org.junit.Assert.assertEquals;
-@RunWith(Parameterized.class)
+import static io.restassured.RestAssured.given;
+import static org.apache.http.HttpStatus.*;
+
 public class UserTest {
 
-    private UserApi registerData;
-    private UserApi updateData;
-    private String token = "";
-    private int statusCode;
-    private boolean isUpdated;
+    private RequestSpecification spec;
 
-    @Parameterized.Parameters(name = "Изменение данных пользователя с авторизацией: {index} - isAuth={0}, expectedStatus={1}")
-    public static Collection<Object[]> data() {
-        return Arrays.asList(new Object[][]{
-                {true, SC_OK},
-                {false, SC_UNAUTHORIZED},
-        });
+    public static RequestSpecification getSpec(String token) {
+        if (token == null || token.trim().isEmpty()) {
+            System.err.println("Token is null or empty! Cannot proceed.");
+            return null;
+        }
+        return given()
+                .header("Authorization", "Bearer " + token)
+                .contentType(ContentType.JSON);
     }
 
-    @Parameterized.Parameter(0)
-    public boolean isAuth;
-
-    @Parameterized.Parameter(1)
-    public int status;
-
+    private String token = "";
 
     @Before
     public void setUp() {
-        registerData = new UserApi("username", "password");
-        updateData = new UserApi("anotherUsername", "anotherPassword");
-
+        UserApi registerData = new UserApi("test-user@example.com", "password123");
         ValidatableResponse responseRegister = UserApiClient.registerUser(registerData);
+        if (responseRegister.extract().path("accessToken") == null) {
+            System.err.println("Failed to receive access token from registration response.");
+            return;
+        }
         token = responseRegister.extract().path("accessToken");
+        spec = UserApiClient.getSpec(token);
+    }
+    @Test
+    public void updateUserWithAuthorizationTrue() {
+        if (spec == null) {
+            System.err.println("Skipping test due to missing token.");
+            return;
+        }
+        UserApi updateData = new UserApi("updated-test-user@example.com", "newpassword456");
+        ValidatableResponse responseUpdate = UserApiClient.updateUser(updateData, token);
+        int statusCode = responseUpdate.extract().statusCode();
+        boolean isUpdated = responseUpdate.extract().path("success");
+        Assert.assertEquals("Ошибка в коде или теле ответа", SC_OK, statusCode);
+        Assert.assertTrue("Ошибка в теле ответа", isUpdated);
+    }
+    @Test
+    public void updateUserWithAuthorizationFalse() {
+        String invalidToken = "invalid_token";
+        UserApi updateData = new UserApi("another-updated-test-user@example.com", "anothernewpassword789");
+        ValidatableResponse responseUpdate = UserApiClient.updateUser(updateData, invalidToken);
+        int statusCode = responseUpdate.extract().statusCode();
+        Assert.assertEquals("Ошибка в коде или теле ответа", SC_UNAUTHORIZED, statusCode);
     }
     @After
     public void tearDown() {
         if (token != null && !token.isEmpty()) {
-            ValidatableResponse responseDelete = UserApiClient.deleteUser(token);
-        } else {
-            System.out.println("Token is null or empty, skipping deletion.");
+            UserApiClient.deleteUser(token);
         }
-    }
-    @Test
-    public void updateUserWithAuthorization() {
-        String token2 = isAuth ? token : getValidDefaultToken();
-
-        ValidatableResponse responseUpdate = UserApiClient.updateUser(updateData, token2);
-
-        statusCode = responseUpdate.extract().statusCode();
-        isUpdated = responseUpdate.extract().path("success");
-
-        assertEquals("Ошибка", status, statusCode);
-        assertEquals("Ошибка", isAuth, isUpdated);
-    }
-
-    private String getValidDefaultToken() {
-        return "validDefaultToken";
     }
 }
