@@ -36,7 +36,6 @@ public class UserApiClient extends Client{
                 .delete(UPDATE_USER_PATH)
                 .then();
     }
-    // В классе UserApiClient
     public static RequestSpecification getPublicSpec(String token) {
         return getSpec(token);
     }
