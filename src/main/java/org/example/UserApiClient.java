@@ -1,6 +1,7 @@
 package org.example;
 import io.qameta.allure.Step;
 import io.restassured.response.ValidatableResponse;
+import io.restassured.specification.RequestSpecification;
 import static io.restassured.RestAssured.given;
 public class UserApiClient extends Client{
 
@@ -35,6 +36,11 @@ public class UserApiClient extends Client{
                 .delete(UPDATE_USER_PATH)
                 .then();
     }
+    // В классе UserApiClient
+    public static RequestSpecification getPublicSpec(String token) {
+        return getSpec(token);
+    }
+
 
 }
 

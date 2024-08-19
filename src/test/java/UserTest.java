@@ -1,7 +1,8 @@
-package org.example;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.restassured.response.ValidatableResponse;
+import org.example.UserApi;
+import org.example.UserApiClient;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -34,7 +35,8 @@ public class UserTest {
             return;
         }
         token = responseRegister.extract().path("accessToken");
-        spec = UserApiClient.getSpec(token);
+        spec = UserApiClient.getPublicSpec(token);
+
     }
     @Test
     public void updateUserWithAuthorizationTrue() {
